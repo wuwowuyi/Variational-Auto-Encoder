@@ -38,10 +38,6 @@ def get_dataloader(num_train, batch_size):
 
     mnist_train = dset.MNIST('./data', train=True, download=True, transform=transforms)
     loader_train = DataLoader(mnist_train, batch_size=batch_size, sampler=sampler.SubsetRandomSampler(range(num_train)))
-    # mnist_val = dset.MNIST('./data', train=True, download=True, transform=transforms)
-    # loader_val = DataLoader(mnist_val, batch_size=16, sampler=sampler.SubsetRandomSampler(range(num_train, total_train)))
-    # mnist_test = dset.MNIST('./data', train=False, download=True, transform=transforms)
-    # loader_test = DataLoader(mnist_test, batch_size=batch_size)
     return loader_train
 
 
@@ -88,8 +84,7 @@ def train(config: dict, args: argparse.Namespace):
                                torch.ones(zdim, device=device, dtype=data_type))
     standard_normal = D.Independent(standard_normal, 1)
 
-
-    num_epoch = config['total_steps'] // (num_train // batch_size)
+    num_epoch = config['epochs']
     t = 0
     for epoch in range(num_epoch):
         for x, y in loader_train:
@@ -97,8 +92,8 @@ def train(config: dict, args: argparse.Namespace):
             #y = y.to(device=device, dtype=torch.int64)
             gen_x, z_dist = model(x)
 
-            a = D.kl_divergence(z_dist, standard_normal).mean()
-            b = F.mse_loss(gen_x, x)
+            a = D.kl_divergence(z_dist, standard_normal).sum()
+            b = F.mse_loss(gen_x, x,  reduction='sum')
             loss = a + b
 
             optimizer.zero_grad()

@@ -36,15 +36,12 @@ class Decoder(nn.Module):
         self.input = nn.Linear(zdim, hidden_dim)
         self.tanh = nn.Tanh()
         self.hidden = nn.Linear(hidden_dim, image_dim)
-        self.sigmoid = nn.Sigmoid()
-        #self.head = nn.Linear(image_dim, num_class)
 
         self.apply(_init_weights)
 
     def forward(self, z):
         x = self.tanh(self.input(z))
         x = self.tanh(self.hidden(x))
-        #out = self.head(x)
         return x
 
 
