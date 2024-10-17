@@ -21,6 +21,6 @@ Random samples when latent variable $z \in R^2$:
 Random samples when latent variable $z \in R^{20}$:
 
 ![z=20 manifold](Vanilla_VAE/assets/20d_random.png)
-It looks to me $z \in R^20$ has better generation performance since the generated images have clearer images of 2 and 4. And the training loss is lower too.
+It looks to me $z \in R^{20}$ has better generation performance since the generated images have clearer images of 2 and 4. And the training loss is lower too.
 
 
