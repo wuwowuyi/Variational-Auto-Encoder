@@ -1,0 +1,23 @@
+model_name: mnist
+
+image_dim: 784
+image_shape: [28, 28, 1]
+
+hidden_dim: 500
+zdim: 10
+
+#total_train: 60000
+num_train: 60000
+
+weight_decay: 0.0
+
+batch_size: 100
+
+learning_rate: 0.0001
+decay_steps:
+  - 30000
+  - 45000
+
+momentum: 0.9
+
+total_steps: 100000
