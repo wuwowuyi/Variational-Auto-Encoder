@@ -4,9 +4,8 @@ image_dim: 784
 image_shape: [28, 28, 1]
 
 hidden_dim: 500
-zdim: 10
+zdim: 2
 
-#total_train: 60000
 num_train: 60000
 
 weight_decay: 0.0
@@ -15,8 +14,8 @@ batch_size: 100
 
 learning_rate: 0.001
 decay_steps:
-  - 9000
-  - 12000
+  - 30000
+  - 45000
 
 
-epochs: 30
+epochs: 100

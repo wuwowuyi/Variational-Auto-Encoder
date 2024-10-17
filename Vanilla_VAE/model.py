@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from torch import distributions as D
 from torch.nn import functional as F
@@ -60,4 +61,8 @@ class VAE(nn.Module):
         z = z_dist.rsample()
         x = self.decoder(z)
         return x, z_dist
+
+    @torch.no_grad()
+    def sample(self, z):
+        return self.decoder(z)
 

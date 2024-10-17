@@ -3,10 +3,13 @@ import glob
 import numpy as np
 import torch
 import torchvision.datasets as dset
+from torch import distributions as D
+
 from matplotlib import pyplot as plt, gridspec
 from torch.utils.data import DataLoader, sampler
 from torchvision.transforms import v2 as T
 
+from Vanilla_VAE.model import VAE
 from train import save_samples, ckpt_path
 
 image_dir = ckpt_path
@@ -24,7 +27,7 @@ def show_images(images):
     gs = gridspec.GridSpec(n_batch, batch_size)
     gs.update(wspace=0.05, hspace=0.05)
 
-    for i, batch in enumerate(reversed(images)):
+    for i, batch in enumerate(images):
         for j in range(batch_size):
             idx = i * batch_size + j
             ax = plt.subplot(gs[idx])
@@ -48,7 +51,7 @@ def _prepare_file():
 
 
 def test_viz():
-    #_prepare_file()
+    _prepare_file()
     show_training_images("test")
 
 
@@ -59,5 +62,33 @@ def show_training_images(split: str = 'train'):
     show_images(images)
 
 
+def visualize_mnist(ckpt_file, *, zdim=20, sample="random"):
+    f = ckpt_path / ckpt_file
+    checkpoint = torch.load(f)
+    model = VAE(28 * 28, 500, zdim)
+    model.load_state_dict(checkpoint['model_dict'])
+
+    if sample == 'manifold':
+        assert zdim == 2
+        xs = torch.linspace(0.025, 0.975, 20)
+        ys = torch.linspace(0.025, 0.975, 20)
+        x, y = torch.meshgrid(xs, ys, indexing='xy')
+        cdfv = torch.stack((x.flatten(), y.flatten()), dim=1)
+        norm = D.Normal(0.0, 1.0)
+        z = norm.icdf(cdfv)
+        batch = 20
+    else:
+        dist = D.Independent(D.Normal(torch.zeros(zdim), torch.ones(zdim)), 1)
+        z = dist.sample((100,))
+        batch = 10
+    gen_x = model.sample(z)
+    images = np.split(gen_x.numpy().reshape(-1, 28, 28, 1), batch)
+    show_images(images)
+
+
 if __name__ == "__main__":
-    show_training_images()
+    #test_viz()
+    #show_training_images()
+    ckpt_file = 'mnist-best-20'
+    visualize_mnist(ckpt_file, zdim=20)
+

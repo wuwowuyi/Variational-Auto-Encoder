@@ -27,8 +27,6 @@ if USE_GPU and torch.cuda.is_available():
 else:
     device = torch.device('cpu')
 
-model = None
-
 
 def get_dataloader(num_train, batch_size):
     transforms = T.Compose([
@@ -41,13 +39,6 @@ def get_dataloader(num_train, batch_size):
     return loader_train
 
 
-def sample(data_loader):
-    x = next(iter(data_loader))
-    x = x.to(device=device, dtype=data_type)
-    out_dist = model(x)
-    return out_dist.sample()
-
-
 def save_samples(samples: torch.Tensor, fname: str) -> None:
     """For the convience of calling matplotlib imshow,
     a sample image's shape should be (H, W, C) where C is the channel.
@@ -56,19 +47,12 @@ def save_samples(samples: torch.Tensor, fname: str) -> None:
     np.save(ckpt_path / f"{fname}.npy", samples)
 
 
-def save_checkpoint(values: dict, ckpt_name: str) -> None:
-    filename = f"{ckpt_name}_{str(int(time.time()))}.pkl"
-    with open(ckpt_path / filename, "wb") as f:
-        pickle.dump(values, f)
-
-
 def train(config: dict, args: argparse.Namespace):
 
     seed = 1337 + args.seed
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    global model
     image_dim, hidden_dim, zdim = config['image_dim'], config['hidden_dim'], config['zdim']
     model = VAE(image_dim, hidden_dim, zdim)
     model.to(device=device, dtype=data_type)
@@ -86,15 +70,15 @@ def train(config: dict, args: argparse.Namespace):
 
     num_epoch = config['epochs']
     t = 0
+    best_loss = float('inf')
     for epoch in range(num_epoch):
-        for x, y in loader_train:
+        for x, _ in loader_train:
             x = x.reshape(batch_size, -1).to(device=device, dtype=data_type)  # shape=(batch_size, C * H * W)
-            #y = y.to(device=device, dtype=torch.int64)
             gen_x, z_dist = model(x)
 
-            a = D.kl_divergence(z_dist, standard_normal).sum()
-            b = F.mse_loss(gen_x, x,  reduction='sum')
-            loss = a + b
+            kdl = D.kl_divergence(z_dist, standard_normal).sum()
+            mse_loss = F.mse_loss(gen_x, x,  reduction='sum')
+            loss = kdl + mse_loss
 
             optimizer.zero_grad()
             loss.backward()
@@ -112,27 +96,30 @@ def train(config: dict, args: argparse.Namespace):
                         "step": t,
                         "loss": loss,
                         "lr": current_lr,
+                        "kl": kdl,
+                        "MSE loss": mse_loss
                     })
                 else:
-                    print(f"step {t}, lr {current_lr:.6f}, loss {loss:.4f}, kl-divergence {a:.4f}, cross-entropy {b:.4f}")
+                    print(f"step {t}, lr {current_lr:.6f}, loss {loss:.4f}, kl-divergence {kdl:.4f}, MSE loss {mse_loss:.4f}")
 
                 if first_it or t % args.plot_interval == 0:
                     model.eval()
                     samples = gen_x.reshape(batch_size, *config['image_shape'])
-                    idx = np.random.randint(100, size=(10,))
-                    save_samples(samples[idx], f"train_{t}")
+                    save_samples(samples[:10], f"train_{t}")
                     model.train()
 
-    values = {
-        'model_dict': model.state_dict()
-    }
-    save_checkpoint(values, config['model_name'])
+                if loss < best_loss:
+                    best_loss = loss
+                    values = {
+                        'model_dict': model.state_dict()
+                    }
+                    torch.save(values, ckpt_path / f"{config['model_name']}-{t}-{zdim}")
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", "-cfg", type=str, required=True)
     parser.add_argument("--log_interval", type=int, default=100)
-    parser.add_argument("--plot_interval", type=int, default=1000)
+    parser.add_argument("--plot_interval", type=int, default=10000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--wandb_log", action="store_true")
     args = parser.parse_args()
