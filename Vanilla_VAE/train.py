@@ -70,7 +70,7 @@ def train(config: dict, args: argparse.Namespace):
 
     global model
     image_dim, hidden_dim, zdim = config['image_dim'], config['hidden_dim'], config['zdim']
-    model = VAE(image_dim, hidden_dim, zdim, 10)
+    model = VAE(image_dim, hidden_dim, zdim)
     model.to(device=device, dtype=data_type)
 
     num_train, batch_size = config['num_train'], config['batch_size']

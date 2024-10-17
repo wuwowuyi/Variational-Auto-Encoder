@@ -30,7 +30,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
 
-    def __init__(self, zdim, hidden_dim, image_dim, num_class):
+    def __init__(self, zdim, hidden_dim, image_dim):
         super().__init__()
 
         self.input = nn.Linear(zdim, hidden_dim)
@@ -46,10 +46,10 @@ class Decoder(nn.Module):
 
 
 class VAE(nn.Module):
-    def __init__(self, image_dim, hidden_dim, zdim, num_class):
+    def __init__(self, image_dim, hidden_dim, zdim):
         super().__init__()
         self.encoder = Encoder(image_dim, hidden_dim, zdim)
-        self.decoder = Decoder(zdim, hidden_dim, image_dim, num_class)
+        self.decoder = Decoder(zdim, hidden_dim, image_dim)
 
     def forward(self, images):
         """
